@@ -1,22 +1,31 @@
+body {
+  font: 100%/1.5 system-ui, sans-serif;
+  display: flex;
+  flex-flow: column;
+  max-width: 80em;
+  min-height: 100vh;
+  box-sizing: border-box;
+  margin: auto;
+  padding: 1em;
+}
+
 header {
   display: flex;
   gap: 1em;
-  align-items: center;
+  align-items: baseline;
 }
 
 header label {
   margin-left: auto;
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 0.5em;
   white-space: nowrap;
 }
 
-time#selected-time,
-em#any-time {
-  display: inline-block;
-  min-width: 7em;        /* reserves space so layout never shifts */
-  font-size: 0.9em;
+time, em#any-time {
+  display: block;
+  min-width: 6em;
 }
 
 em#any-time {
