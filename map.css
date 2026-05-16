@@ -62,3 +62,10 @@ html, body {
   font-weight: bold;
   text-align: center;
 }
+
+.legend-title {
+  font-weight: bold;
+  margin-right: 0.5rem;
+  border-right: 1px solid #ccc;
+  padding-right: 0.75rem;
+}
