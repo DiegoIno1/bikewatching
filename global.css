@@ -11,12 +11,17 @@ body {
 
 header {
   display: flex;
-  gap: 1em;
-  align-items: baseline;
+  flex-direction: column;
+  gap: 0.5em;
+  margin-bottom: 1em;
+}
+
+.filter-controls {
+  display: flex;
+  justify-content: flex-end; /* align the label to the right */
 }
 
 header label {
-  margin-left: auto;
   display: flex;
   align-items: baseline;
   gap: 0.5em;
@@ -24,8 +29,9 @@ header label {
 }
 
 time, em#any-time {
-  display: block;
-  min-width: 6em;
+  display: inline-block;
+  min-width: 6em;        /* ensure enough space for formatted time */
+  text-align: left;
 }
 
 em#any-time {
