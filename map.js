@@ -18,6 +18,9 @@ const bikeLanePaint = {
 
 const svg = d3.select('#map').select('svg');
 
+// Quantize scale: snaps departure ratio to 0, 0.5, or 1 (3 distinct colors)
+const stationFlow = d3.scaleQuantize().domain([0, 1]).range([0, 0.5, 1]);
+
 // --- Global state for time buckets (performance optimization) ---
 let departuresByMinute = Array.from({ length: 1440 }, () => []);
 let arrivalsByMinute   = Array.from({ length: 1440 }, () => []);
@@ -101,10 +104,12 @@ map.on('load', async () => {
     .data(stations, (d) => d.short_name)
     .enter()
     .append('circle')
-    .attr('fill', 'steelblue')
     .attr('stroke', 'white')
     .attr('stroke-width', 1)
     .attr('r', (d) => radiusScale(d.totalTraffic))
+    .style('--departure-ratio', (d) =>
+      stationFlow(d.totalTraffic === 0 ? 0.5 : d.departures / d.totalTraffic)
+    )
     .each(function(d) {
       d3.select(this).append('title')
         .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
@@ -130,7 +135,10 @@ map.on('load', async () => {
     circles
       .data(filteredStations, (d) => d.short_name)
       .join('circle')
-      .attr('r', (d) => radiusScale(d.totalTraffic));
+      .attr('r', (d) => radiusScale(d.totalTraffic))
+      .style('--departure-ratio', (d) =>
+        stationFlow(d.totalTraffic === 0 ? 0.5 : d.departures / d.totalTraffic)
+      );
   }
 
   function updateTimeDisplay() {
