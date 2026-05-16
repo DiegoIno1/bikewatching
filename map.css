@@ -58,7 +58,6 @@ html, body {
   background: var(--color);
   padding: 0.2rem 0.8rem;
   border-radius: 20px;
-  color: white;
   font-weight: bold;
   text-align: center;
 }
@@ -68,5 +67,9 @@ html, body {
   margin-right: 0.5rem;
   border-right: 1px solid #ccc;
   padding-right: 0.75rem;
-  color: #222;
+  color: black;
+}
+
+.legend > div:not(.legend-title) {
+  color: white;
 }
