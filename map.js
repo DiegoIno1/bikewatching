@@ -18,14 +18,11 @@ const bikeLanePaint = {
 
 const svg = d3.select('#map').select('svg');
 
-// Quantize scale: snaps departure ratio to 0, 0.5, or 1 (3 distinct colors)
 const stationFlow = d3.scaleQuantize().domain([0, 1]).range([0, 0.5, 1]);
 
-// --- Global state for time buckets (performance optimization) ---
 let departuresByMinute = Array.from({ length: 1440 }, () => []);
 let arrivalsByMinute   = Array.from({ length: 1440 }, () => []);
 
-// --- Helper functions (global) ---
 function getCoords(station) {
   const point = new mapboxgl.LngLat(+station.lon, +station.lat);
   const { x, y } = map.project(point);
@@ -82,7 +79,6 @@ map.on('load', async () => {
     jsonData = await d3.json('https://dsc106.com/labs/lab07/data/bluebikes-stations.json');
   } catch (e) { console.error('Stations load error:', e); return; }
 
-  // Load trips and populate minute buckets as we go
   try {
     await d3.csv('https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv', (trip) => {
       trip.started_at = new Date(trip.started_at);
@@ -124,7 +120,6 @@ map.on('load', async () => {
   map.on('resize', updatePositions);
   map.on('moveend', updatePositions);
 
-  // --- Slider UI ---
   const timeSlider   = document.getElementById('time-slider');
   const selectedTime = document.getElementById('selected-time');
   const anyTimeLabel = document.getElementById('any-time');
