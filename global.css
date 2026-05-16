@@ -46,3 +46,8 @@ em#any-time {
   color: #888;
   font-style: italic;
 }
+
+#time-slider {
+  width: 100%;
+  max-width: 400px;
+}
