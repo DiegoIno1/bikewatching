@@ -1,4 +1,3 @@
-// Import Mapbox as an ESM module
 import mapboxgl from 'https://cdn.jsdelivr.net/npm/mapbox-gl@2.15.0/+esm';
 import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7.9.0/+esm';
 
@@ -8,22 +7,17 @@ const map = new mapboxgl.Map({
   container: 'map',
   style: 'mapbox://styles/diegoino1/cmp7qseda000x01sm3kcf5wc9',
   center: [-71.09415, 42.36027],
-  zoom: 12,
-  minZoom: 5,
-  maxZoom: 18,
+  zoom: 12, minZoom: 5, maxZoom: 18,
 });
 
-// Shared paint style for bike lane layers
 const bikeLanePaint = {
   'line-color': '#32D400',
   'line-width': 3,
   'line-opacity': 0.6,
 };
 
-// Select the SVG overlay inside the map container
 const svg = d3.select('#map').select('svg');
 
-// Convert station lon/lat to SVG pixel coordinates
 function getCoords(station) {
   const point = new mapboxgl.LngLat(+station.Long, +station.Lat);
   const { x, y } = map.project(point);
@@ -31,45 +25,65 @@ function getCoords(station) {
 }
 
 map.on('load', async () => {
-  // Boston bike lanes
-  map.addSource('boston_route', {
-    type: 'geojson',
-    data: 'https://bostonopendata-boston.opendata.arcgis.com/datasets/boston::existing-bike-network-2022.geojson',
-  });
+  map.addSource('boston_route', { type: 'geojson', data: 'https://bostonopendata-boston.opendata.arcgis.com/datasets/boston::existing-bike-network-2022.geojson' });
   map.addLayer({ id: 'boston-bike-lanes', type: 'line', source: 'boston_route', paint: bikeLanePaint });
-
-  // Cambridge bike lanes
-  map.addSource('cambridge_route', {
-    type: 'geojson',
-    data: 'https://raw.githubusercontent.com/cambridgegis/cambridgegis_data/main/Recreation/Bike_Facilities/RECREATION_BikeFacilities.geojson',
-  });
+  map.addSource('cambridge_route', { type: 'geojson', data: 'https://raw.githubusercontent.com/cambridgegis/cambridgegis_data/main/Recreation/Bike_Facilities/RECREATION_BikeFacilities.geojson' });
   map.addLayer({ id: 'cambridge-bike-lanes', type: 'line', source: 'cambridge_route', paint: bikeLanePaint });
 
-  // Load Bluebikes station data
   let stations;
   try {
     const jsonData = await d3.json('https://dsc106.com/labs/lab07/data/bluebikes-stations.json');
-    console.log('Loaded JSON Data:', jsonData);
     stations = jsonData.data.stations;
-    console.log('Stations Array:', stations);
   } catch (error) {
-    console.error('Error loading JSON:', error);
+    console.error('Error loading stations:', error);
     return;
   }
 
-  // Draw a circle for each station
+  // Fetch trip data (~21MB, may take a moment)
+  let trips;
+  try {
+    trips = await d3.csv('https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv');
+    console.log('Loaded trips:', trips.length);
+  } catch (error) {
+    console.error('Error loading trips:', error);
+    return;
+  }
+
+  // Count departures and arrivals per station
+  const departures = d3.rollup(trips, (v) => v.length, (d) => d.start_station_id);
+  const arrivals   = d3.rollup(trips, (v) => v.length, (d) => d.end_station_id);
+
+  // Enrich each station with traffic data
+  stations = stations.map((station) => {
+    const id = station.short_name;
+    station.arrivals   = arrivals.get(id) ?? 0;
+    station.departures = departures.get(id) ?? 0;
+    station.totalTraffic = station.arrivals + station.departures;
+    return station;
+  });
+  console.log('Stations with traffic:', stations);
+
+  // Square-root scale so circle area encodes traffic
+  const radiusScale = d3
+    .scaleSqrt()
+    .domain([0, d3.max(stations, (d) => d.totalTraffic)])
+    .range([0, 25]);
+
   const circles = svg
     .selectAll('circle')
     .data(stations)
     .enter()
     .append('circle')
-    .attr('r', 5)
+    .attr('r', (d) => radiusScale(d.totalTraffic))
     .attr('fill', 'steelblue')
     .attr('stroke', 'white')
     .attr('stroke-width', 1)
-    .attr('opacity', 0.8);
+    .each(function(d) {
+      d3.select(this)
+        .append('title')
+        .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
+    });
 
-  // Reproject circles whenever the map moves
   function updatePositions() {
     circles
       .attr('cx', (d) => getCoords(d).cx)
