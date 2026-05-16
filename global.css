@@ -12,26 +12,34 @@ body {
 header {
   display: flex;
   flex-direction: column;
-  gap: 0.5em;
+  gap: 1em;
   margin-bottom: 1em;
 }
 
 .filter-controls {
   display: flex;
-  justify-content: flex-end; /* align the label to the right */
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25em;
 }
 
-header label {
+.filter-row {
   display: flex;
   align-items: baseline;
   gap: 0.5em;
-  white-space: nowrap;
+}
+
+.time-row {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 1.8em;  
+  font-size: 0.9rem;
 }
 
 time, em#any-time {
   display: inline-block;
-  min-width: 6em;        /* ensure enough space for formatted time */
-  text-align: left;
+  min-width: 6em;        
+  text-align: center;
 }
 
 em#any-time {
