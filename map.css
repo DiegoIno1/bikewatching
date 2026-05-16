@@ -19,7 +19,14 @@ html, body {
   pointer-events: none;
 }
 
-#map svg circle {
-  fill-opacity: 0.6;
-  pointer-events: auto;  /* enables hover tooltips */
+/* shared color variables — used by circles AND legend swatches */
+#map svg circle,
+.legend > div {
+  --color-departures: steelblue;
+  --color-arrivals: darkorange;
+  --color: color-mix(
+    in oklch,
+    var(--color-departures) calc(100% * var(--departure-ratio)),
+    var(--color-arrivals)
+  );
 }

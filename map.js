@@ -5,7 +5,7 @@ mapboxgl.accessToken = 'pk.eyJ1IjoiZGllZ29pbm8xIiwiYSI6ImNtcDdqejZ4YzAzeXozM3B4Z
 
 const map = new mapboxgl.Map({
   container: 'map',
-  style: 'mapbox://styles/diegoino1/cmp7tbmtt000z01smgdm75yzf',
+  style: 'mapbox://styles/diegoino1/cmp7qseda000x01sm3kcf5wc9',
   center: [-71.09415, 42.36027],
   zoom: 12, minZoom: 5, maxZoom: 18,
 });
@@ -18,11 +18,11 @@ const bikeLanePaint = {
 
 const svg = d3.select('#map').select('svg');
 
-// --- Global state for time buckets (performance optimization) ---
+const stationFlow = d3.scaleQuantize().domain([0, 1]).range([0, 0.5, 1]);
+
 let departuresByMinute = Array.from({ length: 1440 }, () => []);
 let arrivalsByMinute   = Array.from({ length: 1440 }, () => []);
 
-// --- Helper functions (global) ---
 function getCoords(station) {
   const point = new mapboxgl.LngLat(+station.lon, +station.lat);
   const { x, y } = map.project(point);
@@ -49,16 +49,8 @@ function filterByMinute(tripsByMinute, minute) {
 }
 
 function computeStationTraffic(stations, timeFilter = -1) {
-  const departures = d3.rollup(
-    filterByMinute(departuresByMinute, timeFilter),
-    (v) => v.length,
-    (d) => d.start_station_id,
-  );
-  const arrivals = d3.rollup(
-    filterByMinute(arrivalsByMinute, timeFilter),
-    (v) => v.length,
-    (d) => d.end_station_id,
-  );
+  const departures = d3.rollup(filterByMinute(departuresByMinute, timeFilter), (v) => v.length, (d) => d.start_station_id);
+  const arrivals   = d3.rollup(filterByMinute(arrivalsByMinute,   timeFilter), (v) => v.length, (d) => d.end_station_id);
   return stations.map((station) => {
     const id = station.short_name;
     station.arrivals     = arrivals.get(id) ?? 0;
@@ -77,9 +69,8 @@ map.on('load', async () => {
   let jsonData;
   try {
     jsonData = await d3.json('https://dsc106.com/labs/lab07/data/bluebikes-stations.json');
-  } catch (e) { console.error('Stations load error:', e); return; }
+  } catch (e) { console.error('Stations error:', e); return; }
 
-  // Load trips and populate minute buckets as we go
   try {
     await d3.csv('https://dsc106.com/labs/lab07/data/bluebikes-traffic-2024-03.csv', (trip) => {
       trip.started_at = new Date(trip.started_at);
@@ -88,7 +79,7 @@ map.on('load', async () => {
       arrivalsByMinute[minutesSinceMidnight(trip.ended_at)].push(trip);
       return trip;
     });
-  } catch (e) { console.error('Trips load error:', e); return; }
+  } catch (e) { console.error('Trips error:', e); return; }
 
   let stations = computeStationTraffic(jsonData.data.stations);
 
@@ -101,10 +92,10 @@ map.on('load', async () => {
     .data(stations, (d) => d.short_name)
     .enter()
     .append('circle')
-    .attr('fill', 'steelblue')
     .attr('stroke', 'white')
     .attr('stroke-width', 1)
     .attr('r', (d) => radiusScale(d.totalTraffic))
+    .style('--departure-ratio', (d) => stationFlow(d.departures / d.totalTraffic))
     .each(function(d) {
       d3.select(this).append('title')
         .text(`${d.totalTraffic} trips (${d.departures} departures, ${d.arrivals} arrivals)`);
@@ -119,7 +110,6 @@ map.on('load', async () => {
   map.on('resize', updatePositions);
   map.on('moveend', updatePositions);
 
-  // --- Slider UI ---
   const timeSlider   = document.getElementById('time-slider');
   const selectedTime = document.getElementById('selected-time');
   const anyTimeLabel = document.getElementById('any-time');
@@ -130,7 +120,8 @@ map.on('load', async () => {
     circles
       .data(filteredStations, (d) => d.short_name)
       .join('circle')
-      .attr('r', (d) => radiusScale(d.totalTraffic));
+      .attr('r', (d) => radiusScale(d.totalTraffic))
+      .style('--departure-ratio', (d) => stationFlow(d.departures / d.totalTraffic));
   }
 
   function updateTimeDisplay() {
